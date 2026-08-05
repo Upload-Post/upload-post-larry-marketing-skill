@@ -74,6 +74,18 @@ if (!API_KEY) {
   form.append('title', caption);
   form.append('async_upload', 'true');
 
+  // TikTok-specific fields: TikTok rejects titles over 90 characters (HTTP 400),
+  // so the long caption goes in tiktok_description and a short title (the --title
+  // arg, or a truncated caption) goes in tiktok_title. auto_add_music makes TikTok
+  // publish photo posts directly with background music instead of delivering them
+  // as inbox drafts the user must confirm in-app.
+  if (PLATFORMS.includes('tiktok')) {
+    const shortTitle = (title || caption).substring(0, 90);
+    form.append('tiktok_title', shortTitle);
+    form.append('tiktok_description', caption);
+    form.append('auto_add_music', 'true');
+  }
+
   // Add each platform
   for (const platform of PLATFORMS) {
     form.append('platform[]', platform);
