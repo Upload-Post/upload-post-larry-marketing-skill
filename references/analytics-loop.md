@@ -33,6 +33,21 @@ Response:
 }
 ```
 
+Account numbers are mostly **last-30-day windows** set by each network: compare one day's value with another's, never add days up. Each platform block also says how fresh it is: `as_of` (when the network was asked), `next_refresh_at` (asking before that returns the same numbers), `missing` (metrics not reported, with a reason; never treat them as 0) and, on TikTok and X, `coverage` (how many recent posts the totals are built from). Networks publish some numbers 24–72 h late, so yesterday's post is not final yet. For a date range use `?since=YYYY-MM-DD&until=YYYY-MM-DD&compare=previous`: each platform gets a `period` block with `start`/`end`/`change` for followers and the `latest` value of window totals.
+
+For one headline number across networks, use `views_total` from `GET /api/uploadposts/total-impressions/{profile}`, not `total_impressions` (a legacy mix of reach and impressions).
+
+**Per-post metrics and what works:**
+```
+GET https://api.upload-post.com/api/uploadposts/post-analytics/{request_id}              # current metrics (+ as_of)
+GET https://api.upload-post.com/api/uploadposts/post-analytics/{request_id}/daily?platform=tiktok   # day by day, stored readings
+GET https://api.upload-post.com/api/uploadposts/post-analytics/cached?user={profile}&sort=-views   # rank many posts, no network calls
+GET https://api.upload-post.com/api/uploadposts/insights?user={profile}&platform=tiktok   # each post vs your others at the same age
+Authorization: Apikey {apiKey}
+```
+
+`/insights` compares each post's views at 1h, 24h, 7d and 30d with the median of the profile's other posts at the same age (`vs_median`: 0.5 = 50% above usual), and groups posts by format, posting hour (UTC), weekday, hashtags and caption length. That is the fair way to judge a hook: a 5-hour-old post next to month-old ones always looks weak. X and YouTube posts only update when someone reads them; if a number looks stuck, `GET /api/uploadposts/analytics-status?user={profile}` shows the last reading, the network delay and the coverage per account.
+
 **Upload history** (per-post tracking with request_ids):
 ```
 GET https://api.upload-post.com/api/uploadposts/history?page=1&limit=50&profile_username={profile}
@@ -70,7 +85,7 @@ Authorization: Apikey {apiKey}
 Upload-Post automatically tracks posts by `request_id`. No manual video-ID linking is needed:
 - When you upload via `POST /upload_photos`, you get a `request_id`
 - Upload history includes the `request_id`, platform-specific post IDs, and post URLs
-- Analytics are tracked at the platform level (followers, impressions, reach)
+- Analytics are tracked at the platform level (followers, impressions, reach) and per post (`/post-analytics`, with daily history and same-age comparisons in `/insights`)
 - No release-ID connection step — Upload-Post handles it automatically
 
 ### RevenueCat Integration (Optional)
